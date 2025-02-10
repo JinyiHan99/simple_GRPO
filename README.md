@@ -5,7 +5,7 @@ We make the simplest codebase to support:
 - Save the GPU memory to make a feasible and efficient training. 
 - Quickly understand RL processes such as GRPO from a teaching perspective. 
 - Quickly try a lot of things, such as improved multi-answer generation, regrouping, penalty on KL, and parameter tuning.
-
+     
 ## Features
 ### Core Loss Calculation: 
 The loss calculation formula is based on Hugging Face's trl. We extend our gratitude to Hugging Face for their contribution.
