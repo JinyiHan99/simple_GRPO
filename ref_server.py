@@ -27,17 +27,17 @@ def bytes_list_to_list(b):
         blist.append(buffer.read(l))
     return blist
 
-if __name__ == '__main__':   
+if __name__ == '__main__':
+    from bottle import request
+    import bottle, threading, queue
+    os.environ['TOKENIZERS_PARALLELISM'] = 'true'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '7'
+
     from transformers import AutoTokenizer, AutoModelForCausalLM
     import torch
     import torch.nn as nn
 
-    from bottle import request
-    import bottle, threading, queue
-    os.environ['TOKENIZERS_PARALLELISM'] = 'true'
-    #os.environ['CUDA_VISIBLE_DEVICES'] = '7'
-
-    model_path = "/data2/Qwen/Qwen2.5-7B-Instruct"
+    model_path = "/mnt/remote-data/downloads/models/Qwen/Qwen2.5-7B"
 
     ref_model = AutoModelForCausalLM.from_pretrained(model_path,
             torch_dtype=torch.bfloat16, _attn_implementation="sdpa").to('cuda')
@@ -67,16 +67,17 @@ if __name__ == '__main__':
         dd = bytes_list_to_list(dd)
         data = {'base': json.loads(dd[0])} 
         data['inputs'] = bytes_to_tensor(dd[1])
-        data['rewards'] = bytes_to_tensor(dd[2])
+        data['advantages'] = bytes_to_tensor(dd[2])
+
         raw_queue.put(data)
-        print('receive', data['inputs'].shape, data['rewards'])
+        print('receive', data['inputs'].shape, data['advantages'])
 
     @app.route('/get', method='GET')
     def do_get():
         if result_queue.empty(): return b'empty'
         return result_queue.get()
 
-    def run_server(): bottle.run(app, host='0.0.0.0', port=59875, server='tornado')
+    def run_server(): bottle.run(app, host='0.0.0.0', port=59878, server='tornado')
     threading.Thread(target=run_server, daemon=False).start()
 
     while True:
@@ -87,7 +88,7 @@ if __name__ == '__main__':
         per_token_logps = per_token_logps[:,prompt_length-1:]
         xdata = make_bytes_list([json.dumps(d['base']).encode(), 
                                  tensor_to_bytes(d['inputs']), 
-                                 tensor_to_bytes(d['rewards']),
+                                 tensor_to_bytes(d['advantages']),
                                  tensor_to_bytes(per_token_logps)])
         result_queue.put(xdata)
 
